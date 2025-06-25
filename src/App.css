@@ -1,0 +1,72 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.zebra-row {
+  background: #f4faff !important;
+}
+
+/* Table header */
+.ant-table-thead > tr > th {
+  background: #f0f6ff !important;
+  font-weight: 600 !important;
+  color: #1677ff !important;
+  border-bottom: 1px solid #e6f0fa !important;
+}
+
+/* Table row hover */
+.ant-table-tbody > tr:hover > td {
+  background: #e6f0fa !important;
+}
+
+/* Table border and shadow */
+.ant-table {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px #e6f0fa !important;
+  border: 1px solid #e6f0fa !important;
+}
+
+/* Pagination margin */
+.ant-pagination {
+  margin-top: 12px !important;
+}
+
+/* Remove extra space above table */
+.invoice-panel-header {
+  margin-bottom: 8px !important;
+}
