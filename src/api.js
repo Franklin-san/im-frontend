@@ -51,13 +51,58 @@ export async function emailInvoice(id, email) {
   return res.json();
 }
 
-// AI Chat API (streaming)
-export async function streamAIChat({ messages, toolChoice, maxSteps, model }) {
+// AI Chat API (non-streaming)
+export async function invokeAI({ messages, toolChoice = 'auto', maxSteps = 5, model }) {
   const res = await fetch(`${API_BASE}/ai/invoke`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages, toolChoice, maxSteps, model }),
   });
-  if (!res.ok) throw new Error('Failed to get AI response');
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to get AI response');
+  }
   return await res.json();
+}
+
+// AI Chat API (streaming)
+export async function streamAIChat({ messages, toolChoice = 'auto', maxSteps = 5, model, onChunk }) {
+  const res = await fetch(`${API_BASE}/ai/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, toolChoice, maxSteps, model }),
+  });
+  
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to get AI response');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (onChunk) {
+              onChunk(data);
+            }
+          } catch (e) {
+            console.warn('Failed to parse chunk:', line);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 } 
