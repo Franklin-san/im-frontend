@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Table, Modal, Form, Input, message, Space, Typography, Popconfirm, Tag, Card, Row, Col, Divider, Descriptions, Avatar, Tooltip, Empty } from 'antd';
-import { PlusOutlined, MailOutlined, DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
+import { MailOutlined, DeleteOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import {
   fetchInvoices,
   fetchInvoice,
-  createInvoice,
-  updateInvoice,
   deleteInvoice,
   emailInvoice,
 } from './api';
@@ -18,50 +16,6 @@ const FRANKLIN_LOGO = (
     <text x="50%" y="55%" textAnchor="middle" fill="#fff" fontSize="18" fontFamily="Arial" dy=".3em">F</text>
   </svg>
 );
-
-function InvoiceForm({ visible, onCancel, onSubmit, initialValues, loading }) {
-  const [form] = Form.useForm();
-  useEffect(() => {
-    if (visible) form.setFieldsValue(initialValues || {});
-  }, [visible, initialValues, form]);
-  return (
-    <Modal
-      open={visible}
-      title={initialValues ? 'Edit Invoice' : 'Create Invoice'}
-      onCancel={onCancel}
-      onOk={() => form.validateFields().then(onSubmit)}
-      confirmLoading={loading}
-      okText={initialValues ? 'Update' : 'Create'}
-      destroyOnClose
-      width={600}
-    >
-      <Form form={form} layout="vertical" initialValues={initialValues}>
-        <Form.Item name="DocNumber" label="Invoice Number" rules={[{ required: true, message: 'Invoice number is required' }]}>
-          <Input placeholder="e.g., INV-001" />
-        </Form.Item>
-        <Form.Item name={['CustomerRef', 'value']} label="Customer ID" rules={[{ required: true, message: 'Customer ID is required' }]}>
-          <Input placeholder="Customer ID from QuickBooks" />
-        </Form.Item>
-        <Form.Item name="TxnDate" label="Transaction Date" rules={[{ required: true, message: 'Transaction date is required' }]}>
-          <Input type="date" />
-        </Form.Item>
-        <Form.Item name="DueDate" label="Due Date" rules={[{ required: true, message: 'Due date is required' }]}>
-          <Input type="date" />
-        </Form.Item>
-        <Form.Item name="TotalAmt" label="Total Amount" rules={[{ required: true, message: 'Total amount is required' }]}>
-          <Input type="number" step="0.01" placeholder="0.00" />
-        </Form.Item>
-        <Form.Item name={['BillEmail', 'Address']} label="Customer Email">
-          <Input type="email" placeholder="customer@example.com" />
-        </Form.Item>
-        <Form.Item name={['CustomerMemo', 'value']} label="Memo">
-          <Input.TextArea rows={3} placeholder="Thank you for your business!" />
-        </Form.Item>
-        {/* Add more fields as needed */}
-      </Form>
-    </Modal>
-  );
-}
 
 function EmailModal({ visible, onCancel, onSend, loading }) {
   const [email, setEmail] = useState('');
@@ -194,9 +148,6 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [formVisible, setFormVisible] = useState(false);
-  const [formLoading, setFormLoading] = useState(false);
-  const [editing, setEditing] = useState(null);
   const [emailModal, setEmailModal] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -242,16 +193,6 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
     setLoading(false);
   };
 
-  const handleCreate = () => {
-    setEditing(null);
-    setFormVisible(true);
-  };
-
-  const handleEdit = (record) => {
-    setEditing(record);
-    setFormVisible(true);
-  };
-
   const handleDelete = async (id) => {
     setLoading(true);
     try {
@@ -262,24 +203,6 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
       message.error(e.message);
     }
     setLoading(false);
-  };
-
-  const handleFormSubmit = async (values) => {
-    setFormLoading(true);
-    try {
-      if (editing) {
-        await updateInvoice(editing.Id, { ...editing, ...values });
-        message.success('Invoice updated');
-      } else {
-        await createInvoice(values);
-        message.success('Invoice created');
-      }
-      setFormVisible(false);
-      loadInvoices();
-    } catch (e) {
-      message.error(e.message);
-    }
-    setFormLoading(false);
   };
 
   const handleEmail = (record) => {
@@ -375,7 +298,6 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
       render: (_, record) => (
         <Space>
           <Button icon={<EyeOutlined />} onClick={() => handleView(record)} size="small" style={{ borderRadius: 6 }}>View</Button>
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} size="small" style={{ borderRadius: 6 }}>Edit</Button>
           <Popconfirm title="Delete invoice?" onConfirm={() => handleDelete(record.Id)} okText="Yes" cancelText="No">
             <Button icon={<DeleteOutlined />} danger size="small" style={{ borderRadius: 6 }}>Delete</Button>
           </Popconfirm>
@@ -390,8 +312,7 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
       <div className="invoice-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Title level={5} style={{ color: '#1677ff', margin: 0, marginLeft: 32 }}>Invoices</Title>
         <div>
-          <Button onClick={handleShowAllClick} style={{ marginRight: 12 }}>Show All Invoices</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ background: '#1677ff', marginRight: 32 }}>New Invoice</Button>
+          <Button onClick={handleShowAllClick} style={{ marginRight: 32 }}>Show All Invoices</Button>
         </div>
       </div>
       <div style={{ width: '100%', overflowX: 'auto', padding: '0 32px' }}>
@@ -408,13 +329,6 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
           locale={{ emptyText: <Empty description={showAll ? 'No invoices found.' : 'No invoices to display. Use AI or click Show All.'} /> }}
         />
       </div>
-      <InvoiceForm
-        visible={formVisible}
-        onCancel={() => setFormVisible(false)}
-        onSubmit={handleFormSubmit}
-        initialValues={editing}
-        loading={formLoading}
-      />
       <EmailModal
         visible={emailModal}
         onCancel={() => setEmailModal(false)}
@@ -423,7 +337,7 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
       />
       <InvoiceDetailModal
         invoice={selected}
-        visible={!!selected && !emailModal && !formVisible}
+        visible={!!selected && !emailModal}
         onClose={() => setSelected(null)}
       />
     </div>

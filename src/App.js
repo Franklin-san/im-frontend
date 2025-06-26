@@ -103,7 +103,7 @@ function App() {
             gap: '8px'
           }}
         >
-          {isReconnecting ? 'Reconnecting...' : 'Reconnect QuickBooks'}
+          {isReconnecting ? 'Connecting...' : 'Connect QuickBooks'}
         </Button>
       </Header>
       <Layout>
