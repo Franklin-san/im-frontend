@@ -216,6 +216,8 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
   const handleShowAllClick = () => {
     setShowAll(true);
     if (onShowAll) onShowAll();
+    // Refresh data from the /invoices endpoint
+    loadInvoices();
   };
 
   const loadInvoices = async () => {

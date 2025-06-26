@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Typography, message } from 'antd';
-import { FileTextOutlined, RobotOutlined } from '@ant-design/icons';
+import { Layout, Menu, Typography, message, Button } from 'antd';
+import { FileTextOutlined, RobotOutlined, ReloadOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css';
 import './App.css';
 import InvoicePanel from './InvoicePanel';
@@ -14,6 +14,7 @@ function App() {
   const [refreshInvoices, setRefreshInvoices] = useState(0);
   const [aiInvoices, setAiInvoices] = useState(null); // Store invoices from AI toolResults
   const [allInvoices, setAllInvoices] = useState([]); // Store all invoices for reset
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   // Load all invoices on mount or refresh
   useEffect(() => {
@@ -27,6 +28,24 @@ function App() {
     }
     loadAll();
   }, [refreshInvoices]);
+
+  // Handle QuickBooks reconnection
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    try {
+      const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3000';
+      const reconnectUrl = `${API_BASE}/auth/start`;
+      
+      // Open the auth URL in a new window/tab
+      window.open(reconnectUrl, '_blank', 'width=800,height=600');
+      
+      message.success('Reconnection window opened. Please complete the QuickBooks authorization.');
+    } catch (error) {
+      message.error('Failed to initiate reconnection: ' + error.message);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
 
   const handleInvoiceUpdate = (toolResult) => {
     // If toolResult is an array of invoices (from listInvoices), set as invoice data
@@ -67,8 +86,25 @@ function App() {
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f6ff' }}>
-      <Header style={{ background: '#e6f0fa', padding: '0 24px', display: 'flex', alignItems: 'center' }}>
+      <Header style={{ background: '#e6f0fa', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Title level={3} style={{ color: '#1677ff', margin: 0 }}>Invoice Manager AI</Title>
+        <Button 
+          type="primary" 
+          icon={<ReloadOutlined />} 
+          loading={isReconnecting}
+          onClick={handleReconnect}
+          style={{ 
+            background: '#1677ff', 
+            borderColor: '#1677ff',
+            borderRadius: '6px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          {isReconnecting ? 'Reconnecting...' : 'Reconnect QuickBooks'}
+        </Button>
       </Header>
       <Layout>
         <Sider width={1000} style={{ background: '#f4faff', borderRight: '1px solid #e6f0fa', padding: 0, minHeight: 'calc(100vh - 64px)' }}>
