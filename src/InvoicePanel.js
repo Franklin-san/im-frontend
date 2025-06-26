@@ -190,7 +190,7 @@ const getInitials = (name) => {
   return parts.length === 1 ? parts[0][0] : (parts[0][0] + parts[parts.length - 1][0]);
 };
 
-export default function InvoicePanel() {
+export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -199,6 +199,24 @@ export default function InvoicePanel() {
   const [editing, setEditing] = useState(null);
   const [emailModal, setEmailModal] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    if (aiInvoices && Array.isArray(aiInvoices)) {
+      setInvoices(aiInvoices);
+      setShowAll(false);
+    } else if (showAll && allInvoices && Array.isArray(allInvoices)) {
+      setInvoices(allInvoices);
+    } else {
+      setInvoices([]);
+    }
+    // eslint-disable-next-line
+  }, [aiInvoices, allInvoices, showAll]);
+
+  const handleShowAllClick = () => {
+    setShowAll(true);
+    if (onShowAll) onShowAll();
+  };
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -210,8 +228,6 @@ export default function InvoicePanel() {
     }
     setLoading(false);
   };
-
-  useEffect(() => { loadInvoices(); }, []);
 
   const handleView = async (record) => {
     setLoading(true);
@@ -371,7 +387,10 @@ export default function InvoicePanel() {
     <div>
       <div className="invoice-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Title level={5} style={{ color: '#1677ff', margin: 0, marginLeft: 32 }}>Invoices</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ background: '#1677ff', marginRight: 32 }}>New Invoice</Button>
+        <div>
+          <Button onClick={handleShowAllClick} style={{ marginRight: 12 }}>Show All Invoices</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ background: '#1677ff', marginRight: 32 }}>New Invoice</Button>
+        </div>
       </div>
       <div style={{ width: '100%', overflowX: 'auto', padding: '0 32px' }}>
         <Table
@@ -384,7 +403,7 @@ export default function InvoicePanel() {
           size="middle"
           onRow={record => ({ onClick: () => setSelected(record) })}
           rowClassName={(_, idx) => idx % 2 === 0 ? 'zebra-row' : ''}
-          locale={{ emptyText: <Empty description="No invoices found. Create your first invoice!" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+          locale={{ emptyText: <Empty description={showAll ? 'No invoices found.' : 'No invoices to display. Use AI or click Show All.'} /> }}
         />
       </div>
       <InvoiceForm

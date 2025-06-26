@@ -1,27 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Typography, message } from 'antd';
 import { FileTextOutlined, RobotOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css';
 import './App.css';
 import InvoicePanel from './InvoicePanel';
 import AIChatPanel from './AIChatPanel';
+import { fetchInvoices } from './api';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 
 function App() {
   const [refreshInvoices, setRefreshInvoices] = useState(0);
+  const [aiInvoices, setAiInvoices] = useState(null); // Store invoices from AI toolResults
+  const [allInvoices, setAllInvoices] = useState([]); // Store all invoices for reset
+
+  // Load all invoices on mount or refresh
+  useEffect(() => {
+    async function loadAll() {
+      try {
+        const data = await fetchInvoices();
+        setAllInvoices(data);
+      } catch (e) {
+        message.error('Failed to load all invoices');
+      }
+    }
+    loadAll();
+  }, [refreshInvoices]);
 
   const handleInvoiceUpdate = (toolResult) => {
-    // Check if the tool result indicates an invoice operation that should refresh the list
+    // If toolResult is an array of invoices (from listInvoices), set as invoice data
+    if (Array.isArray(toolResult) && toolResult.length && toolResult[0].DocNumber) {
+      setAiInvoices(toolResult);
+      message.success('Invoices loaded from AI!');
+      return;
+    }
+    // If toolResult is a single invoice (from getInvoice), filter from allInvoices or add as new
+    if (toolResult && toolResult.DocNumber) {
+      // Try to find in allInvoices
+      const found = allInvoices.find(inv => inv.Id === toolResult.Id);
+      if (found) {
+        setAiInvoices([found]);
+      } else {
+        setAiInvoices([toolResult]);
+      }
+      message.success('Invoice details loaded from AI!');
+      return;
+    }
+    // Otherwise, fallback to refresh
     if (toolResult && (
       toolResult.Id || // Invoice was created/updated
       toolResult.message?.includes('deleted') || // Invoice was deleted
       toolResult.message?.includes('sent') // Invoice was emailed
     )) {
       setRefreshInvoices(prev => prev + 1);
+      setAiInvoices(null); // Reset to all
       message.success('Invoice data updated!');
     }
+  };
+
+  // Handler to reset to all invoices
+  const handleShowAll = () => {
+    setAiInvoices(null);
+    message.info('Showing all invoices');
   };
 
   return (
@@ -37,7 +78,7 @@ function App() {
           <div style={{ padding: '24px 0 0 0', width: '100%' }}>
             <div style={{ color: '#1677ff', fontWeight: 500, marginBottom: 16, paddingLeft: 32 }}>Invoice Management</div>
             <div style={{ width: '100%' }}>
-              <InvoicePanel key={refreshInvoices} />
+              <InvoicePanel key={refreshInvoices} aiInvoices={aiInvoices} allInvoices={allInvoices} onShowAll={handleShowAll} />
             </div>
           </div>
         </Sider>
