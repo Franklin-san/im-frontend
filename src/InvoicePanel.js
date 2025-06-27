@@ -144,25 +144,52 @@ const getInitials = (name) => {
   return parts.length === 1 ? parts[0][0] : (parts[0][0] + parts[parts.length - 1][0]);
 };
 
-export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
+export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll, refreshTrigger }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [emailModal, setEmailModal] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(0);
 
   useEffect(() => {
+    console.log('InvoicePanel useEffect triggered:', { aiInvoices, allInvoices, showAll });
+    
     if (aiInvoices && Array.isArray(aiInvoices)) {
+      console.log('Setting invoices from aiInvoices:', aiInvoices.length);
       setInvoices(aiInvoices);
       setShowAll(false);
     } else if (showAll && allInvoices && Array.isArray(allInvoices)) {
+      console.log('Setting invoices from allInvoices:', allInvoices.length);
       setInvoices(allInvoices);
     } else {
-      setInvoices([]);
+      console.log('No specific invoices to show, loading all invoices...');
+      // If no specific invoices are provided, load all invoices
+      loadInvoices();
     }
     // eslint-disable-next-line
   }, [aiInvoices, allInvoices, showAll]);
+
+  // Handle refresh triggers
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > lastRefresh) {
+      console.log('Refresh trigger detected, loading fresh data...');
+      setLastRefresh(refreshTrigger);
+      if (!aiInvoices && !showAll) {
+        loadInvoices();
+      }
+    }
+  }, [refreshTrigger, lastRefresh, aiInvoices, showAll]);
+
+  // Add a separate effect to handle manual refreshes
+  useEffect(() => {
+    // This will trigger when the component is re-mounted due to key change
+    console.log('InvoicePanel component refreshed, loading fresh data...');
+    if (!aiInvoices && !showAll) {
+      loadInvoices();
+    }
+  }, []); // Empty dependency array means this runs once on mount
 
   const handleShowAllClick = () => {
     setShowAll(true);
@@ -172,11 +199,14 @@ export default function InvoicePanel({ aiInvoices, allInvoices, onShowAll }) {
   };
 
   const loadInvoices = async () => {
+    console.log('Loading invoices from API...');
     setLoading(true);
     try {
       const data = await fetchInvoices();
+      console.log('Loaded invoices:', data.length);
       setInvoices(data);
     } catch (e) {
+      console.error('Failed to load invoices:', e);
       message.error(e.message);
     }
     setLoading(false);

@@ -48,14 +48,17 @@ function App() {
   };
 
   const handleInvoiceUpdate = (toolResult) => {
+    console.log('handleInvoiceUpdate called with:', toolResult);
+    
     // If toolResult is an array of invoices (from listInvoices), set as invoice data
     if (Array.isArray(toolResult) && toolResult.length && toolResult[0].DocNumber) {
       setAiInvoices(toolResult);
       message.success('Invoices loaded from AI!');
       return;
     }
+    
     // If toolResult is a single invoice (from getInvoice), filter from allInvoices or add as new
-    if (toolResult && toolResult.DocNumber) {
+    if (toolResult && toolResult.DocNumber && !Array.isArray(toolResult)) {
       // Try to find in allInvoices
       const found = allInvoices.find(inv => inv.Id === toolResult.Id);
       if (found) {
@@ -66,12 +69,45 @@ function App() {
       message.success('Invoice details loaded from AI!');
       return;
     }
-    // Otherwise, fallback to refresh
+    
+    // Handle update operations - refresh all data to show the updated invoice
+    if (toolResult && Array.isArray(toolResult) && toolResult.length > 0 && toolResult[0].Id) {
+      console.log('Update operation detected, refreshing data...');
+      
+      // Immediately update the allInvoices state with the updated invoice
+      const updatedInvoice = toolResult[0];
+      setAllInvoices(prevInvoices => {
+        const updated = prevInvoices.map(inv => 
+          inv.Id === updatedInvoice.Id ? updatedInvoice : inv
+        );
+        console.log('Updated allInvoices with new data for invoice:', updatedInvoice.Id);
+        return updated;
+      });
+      
+      // This is likely an update result - refresh the data
+      setRefreshInvoices(prev => {
+        console.log('Incrementing refreshInvoices from', prev, 'to', prev + 1);
+        return prev + 1;
+      });
+      setAiInvoices(null); // Reset to show all invoices with updated data
+      message.success('Invoice updated successfully! Refreshing data...');
+      
+      // Force a manual refresh after a short delay to ensure the data is updated
+      setTimeout(() => {
+        console.log('Forcing manual refresh...');
+        setRefreshInvoices(prev => prev + 1);
+      }, 1000);
+      
+      return;
+    }
+    
+    // Otherwise, fallback to refresh for other operations
     if (toolResult && (
       toolResult.Id || // Invoice was created/updated
       toolResult.message?.includes('deleted') || // Invoice was deleted
       toolResult.message?.includes('sent') // Invoice was emailed
     )) {
+      console.log('Other operation detected, refreshing data...');
       setRefreshInvoices(prev => prev + 1);
       setAiInvoices(null); // Reset to all
       message.success('Invoice data updated!');
@@ -114,7 +150,13 @@ function App() {
           <div style={{ padding: '24px 0 0 0', width: '100%' }}>
             <div style={{ color: '#1677ff', fontWeight: 500, marginBottom: 16, paddingLeft: 32 }}>Invoice Management</div>
             <div style={{ width: '100%' }}>
-              <InvoicePanel key={refreshInvoices} aiInvoices={aiInvoices} allInvoices={allInvoices} onShowAll={handleShowAll} />
+              <InvoicePanel 
+                key={refreshInvoices} 
+                aiInvoices={aiInvoices} 
+                allInvoices={allInvoices} 
+                onShowAll={handleShowAll}
+                refreshTrigger={refreshInvoices}
+              />
             </div>
           </div>
         </Sider>

@@ -110,6 +110,68 @@ export default function AIChatPanel({ onInvoiceUpdate }) {
         }
       }
       
+      // Check if this was an update operation and trigger a refresh (even without delimited JSON)
+      if (result.toolResults && result.toolResults.length > 0) {
+        console.log('Tool results found:', result.toolResults.length);
+        console.log('Tool results:', result.toolResults);
+        
+        // Log each tool result structure
+        result.toolResults.forEach((tool, index) => {
+          console.log(`Tool ${index}:`, {
+            toolName: tool.toolName,
+            hasResult: !!tool.result,
+            resultKeys: tool.result ? Object.keys(tool.result) : [],
+            hasInvoice: tool.result && !!tool.result.Invoice,
+            invoiceKeys: tool.result && tool.result.Invoice ? Object.keys(tool.result.Invoice) : []
+          });
+        });
+        
+        const updateResults = result.toolResults.filter(tool => 
+          tool.toolName === 'updateInvoice' && tool.result && tool.result.Invoice
+        );
+        
+        console.log('Update results found:', updateResults.length);
+        
+        if (updateResults.length > 0) {
+          console.log('Invoice update detected, triggering refresh...');
+          console.log('Update result data:', updateResults[0]);
+          
+          // Extract the updated invoice data and pass it to the parent
+          const updatedInvoices = updateResults.map(tool => {
+            const invoice = tool.result.Invoice;
+            console.log('Processing updated invoice:', invoice);
+            
+            return {
+              Id: invoice.Id,
+              DocNumber: invoice.DocNumber,
+              CustomerRef: invoice.CustomerRef,
+              TxnDate: invoice.TxnDate,
+              DueDate: invoice.DueDate,
+              TotalAmt: invoice.TotalAmt,
+              Balance: invoice.Balance,
+              Status: invoice.Balance === 0 ? 'Paid' : invoice.Balance < invoice.TotalAmt ? 'Partial' : 'Unpaid'
+            };
+          });
+          
+          console.log('Mapped updated invoices:', updatedInvoices);
+          
+          if (onInvoiceUpdate) {
+            console.log('Calling onInvoiceUpdate with:', updatedInvoices);
+            onInvoiceUpdate(updatedInvoices);
+          } else {
+            console.log('onInvoiceUpdate callback is not available');
+          }
+        } else {
+          console.log('No updateInvoice tool results found');
+          // Check if there are any tool results that might be update-related
+          const allToolNames = result.toolResults.map(t => t.toolName);
+          console.log('All tool names found:', allToolNames);
+        }
+      } else {
+        console.log('No tool results found in response');
+        console.log('Full result object:', result);
+      }
+      
       setLoading(false);
     } catch (e) {
       console.error('AI Chat Error:', e);
